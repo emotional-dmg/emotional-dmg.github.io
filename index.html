@@ -1,4 +1,402 @@
-<html>
-  <b>hello world</b>
-  <h>i am emotionally damaged</h>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>emotional.dmg</title>
+<style>
+  /* THEME TOKENS: light is the default, dark follows the system unless overridden */
+  :root {
+    --bar: #f4f4f5;  --bar-bd: #d2d2d6;  --text: #1c1c1e;  --dis: #a0a0a5;
+    --active: #d8d8dc;  --dd: #f6f6f7;  --dd-bd: #c9c9ce;  --sep: #d9d9dd;
+    --desk: #d9dce2;  --dock: #f1f1f3;  --dock-bd: #c6c6cb;
+    --accent: #178a3e;  --shadow: rgba(0,0,0,.22);  --dmg-bg: #f4f4f6;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bar: #161616;  --bar-bd: #2c2c2e;  --text: #f2f2f4;  --dis: #78787d;
+      --active: #3a3a3c;  --dd: #262628;  --dd-bd: #3d3d40;  --sep: #444447;
+      --desk: #0f1114;  --dock: #232325;  --dock-bd: #3a3a3d;  --shadow: rgba(0,0,0,.55);  --dmg-bg: #000;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bar: #161616;  --bar-bd: #2c2c2e;  --text: #f2f2f4;  --dis: #78787d;
+    --active: #3a3a3c;  --dd: #262628;  --dd-bd: #3d3d40;  --sep: #444447;
+    --desk: #0f1114;  --dock: #232325;  --dock-bd: #3a3a3d;  --shadow: rgba(0,0,0,.55);  --dmg-bg: #000;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: var(--desk); }
+  body {
+    color: var(--text);
+    font: 13px/1 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    overflow: hidden;
+    -webkit-user-select: none; user-select: none;
+  }
+
+  /* MENU BAR */
+  .menubar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+    height: calc(24px + env(safe-area-inset-top, 0px));
+    padding: env(safe-area-inset-top, 0px) 8px 0;
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--bar);
+  }
+  .left, .right { display: flex; align-items: center; height: 24px; }
+  .mi {
+    position: relative; height: 22px; padding: 0 9px;
+    display: flex; align-items: center;
+    border-radius: 5px; white-space: nowrap; cursor: default;
+  }
+  .mi.bold { font-weight: 700; }
+  .mi.open { background: var(--active); }
+  .mi svg { width: 15px; height: 15px; fill: currentColor; }
+
+  /* DROPDOWNS */
+  .dd, .sub {
+    display: none; position: absolute; z-index: 20;
+    min-width: 190px; padding: 4px;
+    background: var(--dd); border: 1px solid var(--dd-bd);
+    border-radius: 6px; box-shadow: 0 10px 30px var(--shadow);
+    color: var(--text); font-weight: 400;
+  }
+  .dd { top: 23px; left: 0; }
+  .sub { top: -5px; left: 100%; }
+  .mi.open > .dd { display: block; }
+  .it:hover > .sub { display: block; }
+
+  .it {
+    position: relative; display: flex; align-items: center;
+    height: 22px; padding: 0 10px;
+    border-radius: 4px; white-space: nowrap;
+  }
+  .it .ck { width: 14px; text-align: center; font-size: 12px; }
+  .it .ar { margin-left: auto; padding-left: 18px; opacity: .6; }
+  .it:hover { background: var(--accent); color: #fff; }
+  .it.off { color: var(--dis); pointer-events: none; }
+  .sep { height: 1px; margin: 4px 10px; background: var(--sep); }
+
+  /* RIGHT SIDE */
+  .mode {
+    height: 22px; padding: 0 8px; margin: 0;
+    display: flex; align-items: center;
+    background: none; border: 0; border-radius: 5px;
+    color: inherit; cursor: default;
+  }
+  .mode:hover { background: var(--active); }
+  .mode svg { width: 14px; height: 14px; }
+  .clock { padding: 0 8px; white-space: nowrap; }
+
+  /* DOCK: empty, flat, no animation */
+  .dock-wrap {
+    position: fixed; left: 0; right: 0; z-index: 5;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    display: flex; justify-content: center; pointer-events: none;
+  }
+  .dock {
+    pointer-events: auto;
+    min-width: 120px; height: 68px; padding: 8px;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--dock); border: 1px solid var(--dock-bd);
+    border-radius: 22px; box-shadow: 0 8px 24px var(--shadow);
+  }
+  .dock-icon { width: 52px; height: 52px; border-radius: 12px; background: var(--dd-bd); }
+
+  /* DESKTOP, ICONS, DMG WINDOW */
+  .desktop { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1; top: calc(24px + env(safe-area-inset-top, 0px)); }
+  .icon { position: absolute; width: 84px; padding: 4px 0; display: flex; flex-direction: column; align-items: center; gap: 4px; touch-action: none; cursor: default; }
+  .icon.drag { z-index: 2; }
+  .img { width: 60px; height: 60px; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: #1e3a2a; box-shadow: 0 2px 6px var(--shadow); }
+  .img svg { width: 34px; height: 30px; fill: #3ddc6c; }
+  .img.png { background: var(--dock-bd); color: var(--text); font: 700 14px/1 ui-monospace, Menlo, monospace; box-shadow: none; }
+  .lbl { max-width: 100%; padding: 2px 6px; border-radius: 4px; font-size: 12px; text-align: center; word-break: break-word; }
+  .img.app2 { background: #2b2b30; }
+  .img.app2 svg { fill: #ff5f57; }
+  .icon.sel .lbl { background: var(--accent); color: #fff; }
+  .icon.sel .img { filter: brightness(.8); }
+
+  .win { position: absolute; z-index: 4; display: none; width: min(480px, calc(100vw - 24px)); background: var(--dd); border: 1px solid var(--dd-bd); border-radius: 12px; box-shadow: 0 18px 50px var(--shadow); overflow: hidden; }
+  .win.show { display: block; }
+  .tb { position: relative; height: 28px; padding: 0 10px; display: flex; align-items: center; background: var(--bar); touch-action: none; cursor: default; }
+  .dots { display: flex; gap: 8px; position: relative; z-index: 1; }
+  .dot { width: 12px; height: 12px; padding: 0; border: 0; border-radius: 50%; background: var(--dock-bd); }
+  .dot.x { background: #ff5f57; }
+  .ttl { position: absolute; left: 0; right: 0; text-align: center; font-weight: 600; pointer-events: none; }
+  .dmg { position: relative; height: 400px; padding: 0 20px 24px; display: flex; align-items: center; justify-content: space-around; }
+  .it2 { width: 96px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .dmg .img { width: 76px; height: 76px; border-radius: 17px; position: relative; touch-action: none; }
+  .dmg .img svg { width: 42px; height: 36px; }
+  .dmg .img.lift { z-index: 3; }
+  .dmg .folder { background: none; box-shadow: none; }
+  .dmg .folder svg { width: 76px; height: 62px; fill: #6e9bd1; }
+  .arw { width: 70px; height: 21px; color: var(--dis); }
+  .cap { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; color: var(--dis); }
+
+  /* INSTALLER BACKGROUND ART (480x400 = 120x100 at 4x, shown 1:1) */
+  .dmg { --art: url(assets/diskimg1@4x.png); --art-damaged: url(assets/diskimg2@4x.png); background: var(--dmg-bg) var(--art) center / cover no-repeat; image-rendering: pixelated; }
+  .dmg.damaged { background-image: var(--art-damaged); } /* crying cat */
+
+  @media (max-width: 600px) { .opt { display: none; } }
+</style>
+</head>
+<body>
+
+<div class="menubar">
+  <div class="left" id="menus"></div>
+  <div class="right">
+    <button class="mode" id="mode" aria-label="Toggle light or dark mode" title="Toggle light / dark">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg>
+    </button>
+    <span class="clock" id="clock"></span>
+  </div>
+</div>
+
+<div class="desktop" id="desktop"></div>
+
+<div class="dock-wrap">
+  <div class="dock" id="dock" aria-label="Dock">
+    <!-- add icons here later: <div class="dock-icon"></div> -->
+  </div>
+</div>
+
+<script>
+(function () {
+  var D = document.documentElement;
+  var $ = function (s) { return document.querySelector(s); };
+  var sys = matchMedia('(prefers-color-scheme: dark)');
+
+  // THEME
+  function get() { try { return localStorage.getItem('theme'); } catch (e) { return null; } }
+  function put(v) { try { v ? localStorage.setItem('theme', v) : localStorage.removeItem('theme'); } catch (e) {} }
+  function mode() { var t = D.dataset.theme; return (t === 'light' || t === 'dark') ? t : 'auto'; }
+  function dark() { return mode() === 'dark' || (mode() === 'auto' && sys.matches); }
+  function setMode(m) {
+    if (m === 'auto') D.removeAttribute('data-theme'); else D.dataset.theme = m;
+    put(m === 'auto' ? null : m);
+    build();
+  }
+  function toggle() { setMode(dark() ? 'light' : 'dark'); }
+  var saved = get();
+  if (saved === 'light' || saved === 'dark') D.dataset.theme = saved;
+
+  // MENUS (add or edit items here)
+  var APPLE = '<svg viewBox="0 0 24 24" aria-label="Apple menu"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>';
+  var stub = function (l) { return { l: l, off: 1 }; };
+  var MENUS = [
+    { logo: 1, items: [
+      stub('About This Site'), '-',
+      { l: 'Appearance', sub: [
+        { l: 'Light', on: function () { return mode() === 'light'; }, fn: function () { setMode('light'); } },
+        { l: 'Dark',  on: function () { return mode() === 'dark'; },  fn: function () { setMode('dark'); } },
+        { l: 'Auto',  on: function () { return mode() === 'auto'; },  fn: function () { setMode('auto'); } }
+      ] }, '-',
+      { l: function () { return dark() ? 'Switch to Light Mode' : 'Switch to Dark Mode'; }, fn: toggle }
+    ] },
+    { name: 'emotional.dmg', bold: 1, items: [
+      stub('About emotional.dmg'), '-',
+      { l: 'Services', sub: [stub('No Services Apply')] }, '-',
+      stub('Quit emotional.dmg')
+    ] },
+    { name: 'File',   opt: 1, items: [stub('New Window'), stub('Close Window')] },
+    { name: 'Edit',   opt: 1, items: [stub('Undo'), stub('Redo')] },
+    { name: 'View',   opt: 1, items: [stub('Enter Full Screen')] },
+    { name: 'Window', opt: 1, items: [stub('Minimize'), stub('Zoom')] },
+    { name: 'Help', items: [stub('Search'), '-', stub('emotional.dmg Help')] }
+  ];
+
+  var ACT = [];
+  function row(it) {
+    if (it === '-') return '<div class="sep"></div>';
+    var n = ACT.push(it.fn || null) - 1;
+    var label = typeof it.l === 'function' ? it.l() : it.l;
+    var ck = it.on ? '<span class="ck">' + (it.on() ? '\u2713' : '') + '</span>' : '';
+    var sub = it.sub ? '<div class="sub">' + it.sub.map(row).join('') + '</div>' : '';
+    return '<div class="it' + (it.off ? ' off' : '') + '" data-a="' + n + '">' + ck +
+           '<span>' + label + '</span>' + (it.sub ? '<span class="ar">\u203A</span>' : '') + sub + '</div>';
+  }
+  function build() {
+    ACT = [];
+    $('#menus').innerHTML = MENUS.map(function (m, i) {
+      return '<div class="mi' + (m.bold ? ' bold' : '') + (m.opt ? ' opt' : '') + '" data-m="' + i + '">' +
+             (m.logo ? APPLE : m.name) +
+             '<div class="dd">' + m.items.map(row).join('') + '</div></div>';
+    }).join('');
+  }
+
+  // MENU BEHAVIOUR
+  var open = null;
+  function show(i) {
+    open = i;
+    document.querySelectorAll('.mi').forEach(function (e) { e.classList.toggle('open', e.dataset.m === i); });
+  }
+  var menus = $('#menus');
+  menus.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var r = e.target.closest('.it'), mi = e.target.closest('.mi');
+    if (r) {
+      if (r.classList.contains('off')) return;
+      var fn = ACT[r.dataset.a];
+      if (fn) { show(null); fn(); }
+      return;
+    }
+    if (e.target.closest('.dd')) return;
+    if (mi) show(open === mi.dataset.m ? null : mi.dataset.m);
+  });
+  menus.addEventListener('mouseover', function (e) {
+    if (open === null) return;
+    var mi = e.target.closest('.mi');
+    if (mi && mi.dataset.m !== open) show(mi.dataset.m);
+  });
+  document.addEventListener('click', function () { show(null); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') show(null); });
+  $('#mode').addEventListener('click', function (e) { e.stopPropagation(); show(null); toggle(); });
+  sys.addEventListener('change', build);
+
+  // CLOCK
+  var DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function tick() {
+    var n = new Date();
+    $('#clock').textContent = DAYS[n.getDay()] + ' ' + n.getDate() + ' ' + MON[n.getMonth()] + '\u2002' +
+      String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
+  }
+
+  // DESKTOP ICONS + DMG WINDOW
+  var desk = $('#desktop');
+  var HEART = `<svg viewBox='0 0 7 6' shape-rendering='crispEdges' aria-hidden='true'><path d='M1 0h2v1H1zM4 0h2v1H4zM0 1h7v2H0zM1 3h5v1H1zM2 4h3v1H2zM3 5h1v1H3z'/></svg>`;
+  function sget(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function sset(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  var POS = {};
+  try { POS = JSON.parse(sget('icons')) || {}; } catch (e) { POS = {}; }
+
+  function place(el, x, y) {
+    x = Math.min(Math.max(0, x), Math.max(0, desk.clientWidth - el.offsetWidth));
+    y = Math.min(Math.max(0, y), Math.max(0, desk.clientHeight - el.offsetHeight));
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+  }
+
+  // free drag, no grid snap. onTap runs on a plain click, onEnd after a real drag
+  function drag(handle, el, onTap, onEnd) {
+    handle.addEventListener('pointerdown', function (e) {
+      if (e.button !== 0 || e.target.closest('.dot')) return;
+      var sx = e.clientX, sy = e.clientY, ox = el.offsetLeft, oy = el.offsetTop, moved = false;
+      handle.setPointerCapture(e.pointerId);
+      function mv(ev) {
+        var dx = ev.clientX - sx, dy = ev.clientY - sy;
+        if (!moved && Math.abs(dx) + Math.abs(dy) < 4) return;
+        moved = true;
+        el.classList.add('drag');
+        place(el, ox + dx, oy + dy);
+      }
+      function up() {
+        handle.removeEventListener('pointermove', mv);
+        handle.removeEventListener('pointerup', up);
+        handle.removeEventListener('pointercancel', up);
+        el.classList.remove('drag');
+        if (moved) { if (onEnd) onEnd(); } else if (onTap) { onTap(); }
+      }
+      handle.addEventListener('pointermove', mv);
+      handle.addEventListener('pointerup', up);
+      handle.addEventListener('pointercancel', up);
+    });
+  }
+
+  function clearSel() { desk.querySelectorAll('.icon.sel').forEach(function (n) { n.classList.remove('sel'); }); }
+  document.addEventListener('pointerdown', function (e) { if (!e.target.closest('.icon')) clearSel(); });
+
+  // only one DMG window ever exists: it is built once, then just shown or hidden
+  var dmg = null;
+  function openDmg() {
+    if (!dmg) {
+      dmg = document.createElement('div');
+      dmg.className = 'win';
+      dmg.innerHTML =
+        `<div class='tb'><div class='dots'><button class='dot x' aria-label='Close'></button><span class='dot'></span><span class='dot'></span></div><div class='ttl'>EMOTIONAL</div></div>` +
+        `<div class='dmg${installed ? ' damaged' : ''}'>` +
+          `<div class='it2 app'><div class='img'>${HEART}</div><div class='lbl'>EMOTIONAL</div></div>` +
+          
+          `<div class='it2 fold'><div class='img folder'><svg viewBox='0 0 64 52' aria-hidden='true'><path d='M4 8a4 4 0 0 1 4-4h14l6 6h28a4 4 0 0 1 4 4v30a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z'/></svg></div><div class='lbl'>Applications</div></div>` +
+          `<div class='cap'>${installed ? 'EMOTIONAL is damaged' : ''}</div>` +
+        `</div>`;
+      desk.appendChild(dmg);
+      var app = dmg.querySelector('.app .img'), fold = dmg.querySelector('.fold .img'), cap = dmg.querySelector('.cap');
+      dmg.querySelector('.x').addEventListener('click', function () { dmg.classList.remove('show'); });
+      drag(dmg.querySelector('.tb'), dmg);
+      app.addEventListener('pointerdown', function (e) {
+        if (e.button !== 0) return;
+        var sx = e.clientX, sy = e.clientY;
+        app.setPointerCapture(e.pointerId);
+        app.classList.add('lift');
+        function mv(ev) { app.style.transform = 'translate(' + (ev.clientX - sx) + 'px,' + (ev.clientY - sy) + 'px)'; }
+        function up(ev) {
+          app.removeEventListener('pointermove', mv);
+          app.removeEventListener('pointerup', up);
+          app.removeEventListener('pointercancel', up);
+          var r = fold.getBoundingClientRect();
+          if (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) { cap.textContent = 'EMOTIONAL is damaged'; dmg.querySelector('.dmg').classList.add('damaged'); install(); }
+          app.style.transform = '';
+          app.classList.remove('lift');
+        }
+        app.addEventListener('pointermove', mv);
+        app.addEventListener('pointerup', up);
+        app.addEventListener('pointercancel', up);
+      });
+    }
+    dmg.classList.add('show');
+    if (!dmg.dataset.placed) {
+      dmg.dataset.placed = '1';
+      place(dmg, (desk.clientWidth - dmg.offsetWidth) / 2, (desk.clientHeight - dmg.offsetHeight) / 2 - 24);
+    }
+  }
+
+  // this icon spawns on the desktop once EMOTIONAL is dragged into Applications (and stays)
+  var installed = !!sget('installed');
+  var APP = { id: 'damage', label: 'Emotional Damage', icon: `<div class='img app2'>${HEART}</div>` };
+  function install() {
+    if (installed) return;
+    installed = true;
+    sset('installed', '1');
+    addIcon(APP, 2);
+  }
+
+  // ICONS (add new ones here)
+  var ICONS = [
+    { id: 'emotional', label: 'EMOTIONAL', icon: `<div class='img'>${HEART}</div>`, tap: openDmg },
+    { id: 'pngs', label: 'pngs', icon: `<div class='img png'>PNG</div>` }
+  ];
+  function addIcon(ic, i) {
+    var el = document.createElement('div');
+    el.className = 'icon';
+    el.innerHTML = ic.icon + `<div class='lbl'>${ic.label}</div>`;
+    desk.appendChild(el);
+    var p = POS[ic.id] || { x: desk.clientWidth - 100, y: 16 + i * 104 };
+    place(el, p.x, p.y);
+    el.addEventListener('pointerdown', function () { clearSel(); el.classList.add('sel'); });
+    drag(el, el, ic.tap, function () {
+      desk.appendChild(el); // last dropped icon stays on top of the other icons
+      POS[ic.id] = { x: el.offsetLeft, y: el.offsetTop };
+      sset('icons', JSON.stringify(POS));
+    });
+  }
+  ICONS.forEach(addIcon);
+  if (installed) addIcon(APP, 2);
+
+  window.addEventListener('resize', function () {
+    desk.querySelectorAll('.icon, .win.show').forEach(function (el) { place(el, el.offsetLeft, el.offsetTop); });
+  });
+
+  // first visit on this browser: show the installer once
+  if (!sget('seen')) { sset('seen', '1'); openDmg(); }
+
+  build();
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
+</body>
 </html>
